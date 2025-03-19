@@ -1,0 +1,4 @@
+npm install drawflow --save
+npm install react-router
+npm i @types/drawflow
+npm i --save beautiful-react-diagrams
