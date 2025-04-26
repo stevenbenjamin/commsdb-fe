@@ -9,142 +9,56 @@ import {
   Controls,
   useReactFlow
 } from '@xyflow/react';
-import {Graph,GraphNode, NodeData} from './GraphObjects';
 import '@xyflow/react/dist/style.css';
-import { MOCK_GRAPH, STARTER_GRAPH } from './MockGraph'; 
+import { STARTER_GRAPH } from './MockGraph';
 import Api from '../Api';
-import { useParams } from 'react-router-dom';
-
+import { useParams } from 'react-router-dom'; 
 let nextNodeId = 5;
 
 function randomXY() { // min and max included 
-  return Math.floor(Math.random() * 500 + 1); 
+  return Math.floor(Math.random() * 500 + 1);
 }
-
-
-function MyComponent() {
-  const [data, setData] = useState<Graph >(STARTER_GRAPH);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const { id } = useParams();
-      if (id == undefined){ 
-        setData(STARTER_GRAPH);
-      }
-      else {
-        try {
-        const result = await Api.getWorkflow(id); 
-        setData(result);
-        }
-       catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-  }
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (error) {
-    return <p>Error: {error.message}</p>;
-  }
-
-  return (
-    <div>
-      {/* Render your UI using the 'data' */}
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
-}
- 
-
-
-// // usage
-
-//   const submitHandler = (form: NewInvite): void => {
-//     if (orgId !== undefined) {
-//       // must have a valid org ID to post
-//       void UserApi.createInvite({
-//         email: form.email,
-//         firstName: form.firstName,
-//         lastName: form.lastName,
-//         organizationId: orgId,
-//         roleId: parseRoleString(form.orgRole),
-//       }).then((res) => {
-//         if (res.ok) {
-//           notifyCreationSuccess(
-//             DOMAIN_INVITE,
-//             `for ${form.firstName} ${form.lastName}`
-//           );
-//           navigate("/organization/users");
-//         } else {
-//           void UserApi.getErrorMsg(res).then(([status, error]) => {
-//             notifyCreationFailed(
-//               DOMAIN_INVITE,
-//               `for ${form.firstName} ${form.lastName}`,
-//               errorStatusMessage(status, error)
-//             );
-//           });
-//         }
-//       });
-//     } else {
-//       alert("Internal site error. Please re-login to continue.");
-//     }
-
-
-
 
 
 function Flow() {
   // you can access the internal state here
   const reactFlowInstance = useReactFlow();
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(MOCK_GRAPH.nodes.map(n => n.asDisplayable(randomXY(), randomXY())));
-  const [edges, setEdges, onEdgesChange] = useEdgesState(MOCK_GRAPH.edges);
+  const [nodes, setNodes, onNodesChange] = useNodesState(STARTER_GRAPH.nodes.map(n => n.asDisplayable(100, 100)));
+  const [edges, setEdges, onEdgesChange] = useEdgesState(STARTER_GRAPH.edges);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<any>(null);
+  const { id } = useParams<'id'>();
+  useEffect(() => {
+    const fetchData = async () => {
+      //console.log("fetch");
+      if (id != undefined) {
+        try {
+          const graph = await Api.getWorkflow('' + id);
+          console.log(graph);
+          setNodes(graph.nodes.map(n => n.asDisplayable(randomXY(), randomXY())));
+          setEdges(graph.edges);
+        }
+        catch (err) {
+          setError(err);
+        } 
+      }
+      else { 
+        setNodes(STARTER_GRAPH.nodes.map(n => n.asDisplayable(randomXY(), randomXY())));//STARTER_GRAPH.nodes.map(n => n.asDisplayable(100, 100)));
+        setEdges(STARTER_GRAPH.edges);
+      }
+      setLoading(false);
+    };
+    fetchData();
+  }, []); 
+
+
   const onConnect = useCallback(
     (params: any) => setEdges((els) => addEdge(params, els)),
     [],
   );
- 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const result = await Api.getWorkflow(""); // Replace with your promise
-        setData(result);
-      } catch (err) {
-        setError(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchData();
-  }, []);
-
-  if (loading) {
-    return <p>Loading...</p>;
-  }
-
-  if (error) {
-    return <p>Error: {error.message}</p>;
-  }
-
-  return (
-    <div>
-      {/* Render your UI using the 'data' */}
-      <pre>{JSON.stringify(data, null, 2)}</pre>
-    </div>
-  );
-  
   const addNode = () => {
-    console.log("CLICK");
+    //console.log("add node");
     const id = `${++nextNodeId}`;
     const newNode = {
       id,
@@ -156,14 +70,29 @@ function Flow() {
         label: `Node ${id}`,
       },
     };
+    console.log("ADDDING NODE"+ `${newNode}`)
     reactFlowInstance.addNodes(newNode);
+    ///console.log(reactFlowInstance.getNodes());  
+
   }
 
   const sendGraph = () => {
+    //console.log("send");
     console.log(nodes);
     console.log(edges);
 
-  } 
+  }
+
+
+  if (loading) {
+    return <p>Loading...</p>;
+  }
+
+  if (error) {
+    return <p>Error: {error.message}</p>;
+  }
+
+
   return <div style={{ height: 800, width: 800 }}>
     <ReactFlow
       nodes={nodes}
@@ -202,4 +131,38 @@ function ProviderFlow() {
 export default ProviderFlow;
 
 
+
+
+
+// // usage
+
+//   const submitHandler = (form: NewInvite): void => {
+//     if (orgId !== undefined) {
+//       // must have a valid org ID to post
+//       void UserApi.createInvite({
+//         email: form.email,
+//         firstName: form.firstName,
+//         lastName: form.lastName,
+//         organizationId: orgId,
+//         roleId: parseRoleString(form.orgRole),
+//       }).then((res) => {
+//         if (res.ok) {
+//           notifyCreationSuccess(
+//             DOMAIN_INVITE,
+//             `for ${form.firstName} ${form.lastName}`
+//           );
+//           navigate("/organization/users");
+//         } else {
+//           void UserApi.getErrorMsg(res).then(([status, error]) => {
+//             notifyCreationFailed(
+//               DOMAIN_INVITE,
+//               `for ${form.firstName} ${form.lastName}`,
+//               errorStatusMessage(status, error)
+//             );
+//           });
+//         }
+//       });
+//     } else {
+//       alert("Internal site error. Please re-login to continue.");
+//     }
 
